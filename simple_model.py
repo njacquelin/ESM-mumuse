@@ -4,26 +4,65 @@ from torch import nn
 from itertools import product
 
 
-class Proximity_Detector_with_Cats(nn.Module):
-    def __init__(self, input_size, d_size=128):
-        super(Proximity_Detector_with_Cats, self).__init__()
+class AV_Estimator(nn.Module):
+    def __init__(self,
+                 backbone,
+                 backbone_last_layer,
+                 device,
+                 h_size=128,
+                 nb_values=14):
+        super(AV_Estimator, self).__init__()
 
-        self.input_size = input_size
-        self.d_size = d_size
-        self.norm = 1 / d_size
+        self.backbone = backbone.to(device)
+        self.backbone_last_layer = backbone_last_layer
 
-        self.mask = {}
+        self.input_size = backbone.embed_dim
+        self.h_size = h_size
+        self.nb_values = nb_values
 
         self.layers = nn.Sequential(
-            nn.Linear(input_size, d_size),
+            nn.Linear(self.input_size, self.h_size, bias=False),
             nn.ReLU(),
-            nn.BatchNorm1d(d_size),
-            nn.Linear(d_size, 1),
-            # nn.Sigmoid() # <== removed so that we use the BCE_logsoftmax loss for more stable results
+            nn.Flatten(0, 1),
+            nn.BatchNorm1d(self.h_size),
+            nn.Linear(self.h_size, self.nb_values),
+            nn.Softmax(1)
         )
 
     def forward(self, x):
-        cat_square_matrix = self.fast_cat_square(x, x)
+        with torch.no_grad():
+            emb = self.backbone(x, repr_layers=[self.backbone_last_layer])["representations"][self.backbone_last_layer]
+        out_flatten = self.layers(emb)
+        # out = out_flatten.view(x.shape[0], -1, self.nb_values)
+        return out_flatten
+
+
+class Proximity_Detector_with_Cats(AV_Estimator):
+    def __init__(self):
+        super(Proximity_Detector_with_Cats, self).__init__()
+
+        self.norm = 1 / self.h_size
+
+        self.mask = {}
+
+        self.proxi_estimator = nn.Sequential(
+            nn.Linear(self.input_size, self.h_size),
+            nn.ReLU(),
+            nn.BatchNorm1d(self.h_size),
+            nn.Linear(self.h_size, 1),
+            # nn.Sigmoid() # <== removed so that we use the BCE_logsoftmax loss for more stable results
+        )
+
+    # Not tested yet => TODO: test it
+    def forward(self, x):
+        with torch.no_grad():
+            emb = self.backbone(x, repr_layers=[self.backbone_last_layer])["representations"][self.backbone_last_layer]
+        out_flatten = self.layers(emb)
+        out = out_flatten.view(x.shape[0], -1, self.nb_values)
+
+        richer_emb = torch.cat((emb, out), dim=2)
+
+        cat_square_matrix = self.fast_cat_square(richer_emb, richer_emb)
         cat_matrix = self.layers(cat_square_matrix)
         return cat_matrix
 
@@ -46,34 +85,3 @@ class Proximity_Detector_with_Cats(nn.Module):
         mask = nn.functional.one_hot(indices).float()
         return mask
 
-
-class AV_Estimator(nn.Module):
-    def __init__(self,
-                 backbone,
-                 backbone_last_layer,
-                 h_size=128,
-                 nb_values=14):
-        super(AV_Estimator, self).__init__()
-
-        self.backbone = backbone
-        self.backbone_last_layer = backbone_last_layer
-
-        self.input_size = backbone.embed_dim
-        self.h_size = h_size
-        self.nb_values = nb_values
-
-        self.layers = nn.Sequential(
-            nn.Linear(self.input_size, self.h_size, bias=False),
-            nn.ReLU(),
-            nn.Flatten(0, 1),
-            nn.BatchNorm1d(self.h_size),
-            nn.Linear(self.h_size, self.nb_values),
-            nn.Softmax(1)
-        )
-
-    def forward(self, x):
-        with torch.no_grad():
-            emb = self.backbone(x, repr_layers=[self.backbone_last_layer])["representations"][self.backbone_last_layer]
-        out_flatten = self.layers(emb)
-        # out = out_flatten.view(x.shape[0], -1, self.nb_values)
-        return out_flatten

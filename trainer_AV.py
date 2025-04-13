@@ -16,7 +16,7 @@ if __name__ == '__main__':
     backbone, alphabet = esm.pretrained.esm2_t12_35M_UR50D()
     backbone_last_layer = 12
     backbone.eval()
-    model = AV_Estimator(backbone, backbone_last_layer=backbone_last_layer)
+    model = AV_Estimator(backbone, backbone_last_layer=backbone_last_layer, device=device).to(device)
 
     train_dataloader, val_dataloader = get_dataloader(batch_size, alphabet, use_accessibility=True, drop_last=True)
 
@@ -29,8 +29,8 @@ if __name__ == '__main__':
         val_loss = []
         start = time()
         for i, batch in enumerate(train_dataloader):
-            input = batch["tokens"]
-            target = batch["accessibility_values"]
+            input = batch["tokens"].to(device)
+            target = batch["accessibility_values"].to(device)
 
             out_flat = model(input)  # flat because S dim merged with B dim
             target_flat = target.view(-1)
@@ -45,16 +45,17 @@ if __name__ == '__main__':
             train_loss.append(loss)
         print()
 
-        for i, batch in enumerate(val_dataloader):
-            input = batch["tokens"]
-            target = batch["accessibility_values"]
+        with torch.no_grad():
+            for i, batch in enumerate(val_dataloader):
+                input = batch["tokens"].to(device)
+                target = batch["accessibility_values"].to(device)
 
-            out_flat = model(input)
-            target_flat = target.view(-1)
-            loss = criterion(out_flat, target_flat)
+                out_flat = model(input)
+                target_flat = target.view(-1)
+                loss = criterion(out_flat, target_flat)
 
-            print(f"\rEpoch {epoch} -- VAL -- Batch {i + 1}/{len(val_dataloader)} -- Loss = {loss.data:.3f}", end='')
-            val_loss.append(loss)
+                print(f"\rEpoch {epoch} -- VAL -- Batch {i + 1}/{len(val_dataloader)} -- Loss = {loss.data:.3f}", end='')
+                val_loss.append(loss)
         print()
 
         train_avg = sum(train_loss) / len(train_loss)
