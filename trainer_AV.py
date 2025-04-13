@@ -9,7 +9,7 @@ from simple_model import AV_Estimator
 
 if __name__ == '__main__':
     epoch_nb = 10
-    batch_size = 32
+    batch_size = 16
 
     save_path = "./models"
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     criterion = torch.nn.CrossEntropyLoss()
     optim = torch.optim.Adam(model.layers.parameters(),
-                             lr = 1e-3)
+                             lr=1e-3)
 
     for epoch in range(epoch_nb):
         train_loss = []
