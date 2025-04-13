@@ -108,14 +108,16 @@ class Prot_Dataset(Dataset):
         return accesibility_values
 
 
-def get_dataloader(batch_size, alphabet, use_accessibility, num_workers=0, train_split=0.8):
+def get_dataloader(batch_size, alphabet, use_accessibility, drop_last, num_workers=0, train_split=0.8):
     collator = Collate(alphabet).collate_fn
     full_dataset = Prot_Dataset(alphabet, use_accessibility)
     train_size = int(train_split * len(full_dataset))
     val_size = len(full_dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(full_dataset, [train_size, val_size])
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collator, shuffle=True, num_workers=num_workers)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=collator, shuffle=True, num_workers=num_workers)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collator,
+                                  shuffle=True, num_workers=num_workers, drop_last=drop_last)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, collate_fn=collator,
+                                shuffle=True, num_workers=num_workers, drop_last=drop_last)
     return train_dataloader, val_dataloader
 
 

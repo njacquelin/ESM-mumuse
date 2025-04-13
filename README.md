@@ -32,6 +32,6 @@ This can be intuitively understood as a way to force the network to pay attentio
 Further, the model has access to more (although "parallel") data, which is always a good thing.
 
 # TODO
- * finish implementing accessibility value in the dataloader (metadata ok => just load the file at the corresponding line) => don't forget to put it in the collate too
  * code a training env
+ * define part of the data as test data
  *... start training

@@ -45,3 +45,35 @@ class Proximity_Detector_with_Cats(nn.Module):
         indices = torch.tensor(list(product(range(0, batch_size), range(batch_size, batch_size * 2))))
         mask = nn.functional.one_hot(indices).float()
         return mask
+
+
+class AV_Estimator(nn.Module):
+    def __init__(self,
+                 backbone,
+                 backbone_last_layer,
+                 h_size=128,
+                 nb_values=14):
+        super(AV_Estimator, self).__init__()
+
+        self.backbone = backbone
+        self.backbone_last_layer = backbone_last_layer
+
+        self.input_size = backbone.embed_dim
+        self.h_size = h_size
+        self.nb_values = nb_values
+
+        self.layers = nn.Sequential(
+            nn.Linear(self.input_size, self.h_size, bias=False),
+            nn.ReLU(),
+            nn.Flatten(0, 1),
+            nn.BatchNorm1d(self.h_size),
+            nn.Linear(self.h_size, self.nb_values),
+            nn.Softmax(1)
+        )
+
+    def forward(self, x):
+        with torch.no_grad():
+            emb = self.backbone(x, repr_layers=[self.backbone_last_layer])["representations"][self.backbone_last_layer]
+        out_flatten = self.layers(emb)
+        # out = out_flatten.view(x.shape[0], -1, self.nb_values)
+        return out_flatten
