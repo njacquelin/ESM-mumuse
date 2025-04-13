@@ -9,9 +9,10 @@ from simple_model import AV_Estimator
 
 if __name__ == '__main__':
     epoch_nb = 10
-    batch_size = 4
+    batch_size = 64
 
-    device = torch.cuda.is_available()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("Device:", device)
 
     backbone, alphabet = esm.pretrained.esm2_t12_35M_UR50D()
     backbone_last_layer = 12
