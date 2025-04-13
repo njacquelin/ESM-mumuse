@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+import os
+
 from itertools import product
 
 
@@ -35,6 +37,16 @@ class AV_Estimator(nn.Module):
         out_flatten = self.layers(emb)
         # out = out_flatten.view(x.shape[0], -1, self.nb_values)
         return out_flatten
+
+    def save_linear_layer(self, path, str_bonus=""):
+        model_path = os.path.join(path, "model__"+str_bonus+".py")
+        torch.save(self.layers.state_dict(), model_path)
+        print("model SAVED at:", model_path)
+
+    def load_linear_layer(self, path, str_bonus=""):
+        model_path = os.path.join(path, "model__"+str_bonus+".py")
+        self.layers.load_state_dict(torch.load(model_path, weights_only=True))
+        print("Linear layer loaded.")
 
 
 class Proximity_Detector_with_Cats(AV_Estimator):

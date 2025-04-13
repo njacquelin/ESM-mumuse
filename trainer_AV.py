@@ -9,10 +9,11 @@ from simple_model import AV_Estimator
 
 if __name__ == '__main__':
     epoch_nb = 10
-    batch_size = 64
+    batch_size = 32
+
+    save_path = "./models"
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print("Device:", device)
 
     backbone, alphabet = esm.pretrained.esm2_t12_35M_UR50D()
     backbone_last_layer = 12
@@ -62,3 +63,5 @@ if __name__ == '__main__':
         train_avg = sum(train_loss) / len(train_loss)
         val_avg = sum(val_loss) / len(val_loss)
         print(f"Epoch {epoch} stats : train loss average = {train_avg:.3f} -- val loss average = {val_avg:.3f}\n")
+
+        model.save_linear_layer(save_path, str_bonus=str(epoch) + "_epoch_" + str(val_avg) + "_loss")
