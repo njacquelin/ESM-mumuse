@@ -37,7 +37,7 @@ class Prot_Dataset(Dataset):
         self.conversion_fn = alphabet.encode
 
     def str_to_tokens(self, seq):
-        return self.token_start + self.conversion_fn(seq) + self.token_oes
+        return torch.tensor(self.token_start + self.conversion_fn(seq) + self.token_oes)
 
     def init_metadata(self):
         next_line = 2
@@ -88,15 +88,24 @@ class Prot_Dataset(Dataset):
         seq = getline(self.path_sq, idx * 2 + 2)[:-1] # [:-1] to remove the '\n' character
         seq_length = len(seq)
         tokens = self.str_to_tokens(seq)
-        data = {"name": prot,
+        accesibility_values = self.get_accesibility_values(prot) if self.use_accessibility else None
+        return {"name": prot,
                 "index": idx,
                 "out_length": out_length,
                 "seq": seq,
                 "tokens": tokens,
                 "seq_length": seq_length,
-                "proxi_matrix": proxi_matrix
-                }
-        return data
+                "proxi_matrix": proxi_matrix,
+                "accessibility_values": accesibility_values,
+               }
+
+    def get_accesibility_values(self, prot):
+        av_line = self.metadata[prot]["av_line_data"]
+        accesibility_values_str = getline(self.path_av, av_line)
+        accesibility_values_str = list(accesibility_values_str.split(" ")[:-1])  # "-1" is "\n" at the end of the line
+        accesibility_values_int = list(map(int, accesibility_values_str))
+        accesibility_values = torch.tensor(accesibility_values_int)
+        return accesibility_values
 
 
 def get_dataloader(batch_size, alphabet, use_accessibility, num_workers=0, train_split=0.8):
@@ -112,11 +121,12 @@ def get_dataloader(batch_size, alphabet, use_accessibility, num_workers=0, train
 
 
 #### TEST STUFF => COMMENT ME IF FINISHED ! #####
-import esm
-
-model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-model.eval()  # disables dropout for deterministic results
-t, v = get_dataloader(1, alphabet, True)
-a=0
-
+# import esm
+# model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
+# model.eval()  # disables dropout for deterministic results
+# t, v = get_dataloader(2, alphabet, True)
+# # t.dataset.dataset.__getitem__(0)
+# # a=0
+# for b in t:
+#     a=0
 #################################################
