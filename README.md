@@ -32,6 +32,5 @@ This can be intuitively understood as a way to force the network to pay attentio
 Further, the model has access to more (although "parallel") data, which is always a good thing.
 
 # TODO
- * code a training env
  * define part of the data as test data
  *... start training
