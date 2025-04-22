@@ -1,0 +1,4 @@
+pandas~=2.2.3
+torch~=2.6.0
+numpy~=2.2.4
+fair-esm~=2.0.0
