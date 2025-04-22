@@ -67,9 +67,9 @@ def getitem(i, metadata, prot_list, path_sq, path_out):
     return data
 
 
-path_sq = "./data/quarter_cleaned.sq.txt"
-metadata, prot_list = get_metadata(path_out="./data/DSL_article.cm", path_lst="./data/DSL_article.lst")
-path_out = "./data/DSL_article.cm"
+path_sq = "../data/quarter_cleaned.sq.txt"
+metadata, prot_list = get_metadata(path_out="../data/DSL_article.cm", path_lst="../data/DSL_article.lst")
+path_out = "../data/DSL_article.cm"
 
 start = time()
 data = getitem(3330, metadata, prot_list, path_sq, path_out)

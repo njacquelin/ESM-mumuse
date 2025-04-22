@@ -4,7 +4,7 @@ import torch
 import pandas as pd
 
 from linecache import getline
-from collate import Collate
+from dataloading_utils.collate import Collate
 
 
 from time import time
