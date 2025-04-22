@@ -3,7 +3,7 @@ import esm
 
 from time import time
 
-from dataloader import get_dataloader
+from dataloading_utils.dataloader import get_dataloader
 from simple_model import AV_Estimator
 
 
@@ -26,8 +26,8 @@ if __name__ == '__main__':
 
     criterion = torch.nn.CrossEntropyLoss(ignore_index=-100)
     optim = torch.optim.Adam(model.layers.parameters(),
-                             lr=1e-3)
-
+                             lr=1e-4)
+    prev_best = -1
     for epoch in range(1, epoch_nb+1):
         train_loss = []
         start = time()
@@ -67,13 +67,18 @@ if __name__ == '__main__':
                 top1_acc = good_prediction.sum() / good_prediction.shape[0]
                 top1_val.append(top1_acc.detach().cpu().data * input.shape[0])
 
-                print(f"\rEpoch {epoch} -- VAL -- Batch {i + 1}/{len(val_dataloader)} -- Loss = {loss.data:.3f} -- Top1 = {top1_acc.data}", end='')
+                print(f"\rEpoch {epoch} -- VAL -- Batch {i + 1}/{len(val_dataloader)} -- Loss = {loss.data:.3f} -- Top1 = {100*top1_acc.data:.1f}", end='')
         val_top1_acc = 100 * sum(top1_val) / len(val_dataloader.dataset)
-        print()
-
         val_avg = sum(val_loss) / len(val_loss)
-        print(f"Epoch {epoch} stats : train loss average = {train_avg:.3f} "
-              f"-- val loss average = {val_avg:.3f} "
-              f"-- val top1 = {val_top1_acc:.1f}\n")
 
-        model.save_linear_layer(save_path, str_bonus=str(epoch) + "_epoch_" + str(val_avg) + "_loss")
+        epoch_time = time() - start
+
+        print(f"\nEpoch {epoch} stats : time taken: {epoch_time:.0f} seconds"
+              f"-- train loss average = {train_avg:.3f} "
+              f"-- val loss average = {val_avg:.3f} "
+              f"-- val top1 = {val_top1_acc:.1f}")
+
+        if val_top1_acc > prev_best:
+            model.save_linear_layer(save_path, str_bonus= "epoch_" + str(epoch) + "__top1_" + str(round(val_top1_acc.item(), 1)))
+            prev_best = val_top1_acc
+        print()
