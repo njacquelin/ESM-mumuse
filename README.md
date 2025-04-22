@@ -8,6 +8,11 @@ We have a set of ~3300 acido-amine sequences. Of these sequences we know:
  * the pairwise proximity of each element
  * the solvant accessibility (SA) of each element 
 
+## Problem in the Data
+The accessibility value for a few proteins has an issue: its first element reads a weird big negative number of a integer between 0 and 13. As a TEMPORARY replacement, I switched it to the same value as its neighbour.
+Proteins with weird value: the weird value -> the replacement:
+* 2HLJA: "-919175072" -> 13
+* 3DLCA: "-919175040" -> 13
 
 # METHODS
 After inputting a batch of sequences, we find ourselves with a matrix of size (B, S, D). B is the batch size (mostly ignored for simplification), S is the sequence size, and D is the embedding size.
