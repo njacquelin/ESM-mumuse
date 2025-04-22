@@ -20,7 +20,9 @@ if __name__ == '__main__':
     backbone.eval()
     model = AV_Estimator(backbone, backbone_last_layer=backbone_last_layer, device=device).to(device)
 
-    train_dataloader, val_dataloader = get_dataloader(batch_size, alphabet, use_accessibility=True, drop_last=True)
+    train_dataloader, val_dataloader = get_dataloader(batch_size, alphabet,
+                                                      use_accessibility=True, load_proxi_matrix=False,
+                                                      drop_last=True)
 
     criterion = torch.nn.CrossEntropyLoss()
     optim = torch.optim.Adam(model.layers.parameters(),

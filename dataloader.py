@@ -13,6 +13,7 @@ from time import time
 class Prot_Dataset(Dataset):
     def __init__(self, alphabet,
                  use_accessibility=False,
+                 load_proxi_matrix=True,
                  path="./data/",
                  file_av="quarter_cleaned.av.txt",
                  file_sq="quarter_cleaned.sq.txt",
@@ -23,6 +24,7 @@ class Prot_Dataset(Dataset):
         self.path_sq = path + file_sq
         self.path_lst = path + file_lst
         self.path_out = path + path_out
+        self.load_proxi_matrix = load_proxi_matrix
         self.use_accessibility = use_accessibility
         self.metadata = {}
         self.init_metadata()
@@ -84,7 +86,10 @@ class Prot_Dataset(Dataset):
 
     def __getitem__(self, idx):
         prot = self.prot_list[idx]
-        proxi_matrix, out_length = self.get_proxi_matrix_faster(prot)
+        if self.load_proxi_matrix:
+            proxi_matrix, out_length = self.get_proxi_matrix_faster(prot)
+        else:
+            proxi_matrix, out_length = None, None
         seq = getline(self.path_sq, idx * 2 + 2)[:-1] # [:-1] to remove the '\n' character
         seq_length = len(seq)
         tokens = self.str_to_tokens(seq)
@@ -108,11 +113,13 @@ class Prot_Dataset(Dataset):
         return accesibility_values
 
 
-def get_dataloader(batch_size, alphabet, use_accessibility, drop_last, num_workers=0, train_split=0.8):
-    collator = Collate(alphabet).collate_fn
-    full_dataset = Prot_Dataset(alphabet, use_accessibility)
+def get_dataloader(batch_size, alphabet, use_accessibility, load_proxi_matrix, drop_last, num_workers=0, train_split=0.8):
+    collator = Collate(alphabet, use_accessibility=use_accessibility, load_proxi_matrix=load_proxi_matrix).collate_fn
+
+    full_dataset = Prot_Dataset(alphabet, use_accessibility=use_accessibility, load_proxi_matrix=load_proxi_matrix)
     train_size = int(train_split * len(full_dataset))
     val_size = len(full_dataset) - train_size
+
     train_dataset, val_dataset = torch.utils.data.random_split(full_dataset, [train_size, val_size])
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collator,
                                   shuffle=True, num_workers=num_workers, drop_last=drop_last)
