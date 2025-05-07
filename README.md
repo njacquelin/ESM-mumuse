@@ -10,13 +10,27 @@ We have a set of ~3300 acido-amine sequences. Of these sequences we know:
 
 ## Problem in the Data
 ### Accessibility value
-The accessibility value for a few proteins has an issue: its first element reads a weird big negative number of a integer between 0 and 13. As a TEMPORARY replacement, I switched it to the same value as its neighbour.
+The accessibility value for a few proteins has an issue: its first element reads a weird big negative number of an integer between 0 and 13. As a TEMPORARY replacement, I switched it to the same value as its neighbour.
 Proteins with weird value: the weird value -> the replacement:
 * 2HLJA: "-919175072" -> 13
 * 3DLCA: "-919175040" -> 13
 
 ### Accessibility threshold
-The threshold for the last accessibility value is 199.3 => I suppose it should be 99.3 so i replaced it by this value.
+The threshold for the last accessibility value is 199.3 => I suppose it should be 99.3, so I replaced it by this value.
+
+
+# Data structure
+
+## The batch size conundrum
+The way the dataloader works, it does not have a strategy to batch specific proteins together.
+As a result, the size of a batch is only dependent on the length of its longest element.
+For a batch size B and a max sequence length S, the batch size is (BxS), or (BxSxD) if you count the dimension of the backbone's output vector.
+Therefore, if a batch is big, it is likely to contain a few big sequences and a few short ones that would contain almost only padding. All of it will be wasted.
+
+Example: A batch of size 3 with sequences of length {1000, 50, 300}.
+The first element contains no padding, but the second is 95% padding and the last 50%.
+That's a lot of wasted resources. 
+
 
 # METHODS
 After inputting a batch of sequences, we find ourselves with a matrix of size (B, S, D). B is the batch size (mostly ignored for simplification), S is the sequence size, and D is the embedding size.
@@ -26,8 +40,8 @@ The goal is to estimate P: a probability of proximity.
 We try different approaches to estimate the proximity between the elements of the sequence.
 
 1. concatenate each pair of (s[i], s[j]), then go through a linear layer to estimate P.
-2. pass the sequence through a pair of linear layers, resulting in vectors K and Q of shape (B, S, D'), THEN contactenating them, THEN estimating P with a cosine similarity.
-3. pass the sequence through a pair of linear layers, resulting in vectors K and Q of shape (B, S, D'), THEN contactenating them, THEN estimating P with a linear layer.
+2. pass the sequence through a pair of linear layers, resulting in vectors K and Q of shape (B, S, D'), THEN concatenating them, THEN estimating P with a cosine similarity.
+3. pass the sequence through a pair of linear layers, resulting in vectors K and Q of shape (B, S, D'), THEN concatenating them, THEN estimating P with a linear layer.
 4. pass the sequence through a pair of linear layers, resulting in vectors K and Q of shape (B, S, D'), THEN applying self-attention (ie: out product of K and Q resulting in a matrix of size (B, S, S)) to directly estimate P.
 
 Using the SA, we can add an extra-step to any of the previous methods:

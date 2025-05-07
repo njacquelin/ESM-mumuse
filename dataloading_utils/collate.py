@@ -32,7 +32,7 @@ class Collate():
         tokens.fill_(self.token_padding)
 
         if self.use_accessibility:
-            accessibility_values = torch.empty((batch_size, max_len), dtype=torch.int64)
+            accessibility_values = torch.empty((batch_size, max_len), dtype=torch.float32)
             accessibility_values.fill_(self.ignored_accessibility_value)
         else:
             accessibility_values = None

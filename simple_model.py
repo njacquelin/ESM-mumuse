@@ -11,8 +11,8 @@ class AV_Estimator(nn.Module):
                  backbone,
                  backbone_last_layer,
                  device,
-                 h_size=128,
-                 nb_values=14):
+                 h_size=256,
+                 nb_values=1):
         super(AV_Estimator, self).__init__()
 
         self.backbone = backbone.to(device)
@@ -22,30 +22,44 @@ class AV_Estimator(nn.Module):
         self.h_size = h_size
         self.nb_values = nb_values
 
+
+        # ~23% Top1 acc with esm2_t30_150M_UR50D backbone
+        # ~19% Top1 acc with esm2_t6_8M_UR50D backbone
+        # self.layers = nn.Sequential(
+        #     nn.Linear(self.input_size, self.h_size, bias=False),
+        #     nn.ReLU(),
+        #     nn.BatchNorm1d(self.h_size),
+        #     nn.Linear(self.h_size, self.nb_values, bias=False),
+        #     # nn.Softmax(dim=1)
+        # )
+
         self.layers = nn.Sequential(
-            nn.Linear(self.input_size, self.h_size, bias=False),
+            nn.Conv1d(self.input_size, self.h_size, kernel_size=1, padding=0, bias=False),
             nn.ReLU(),
-            nn.Flatten(0, 1),
             nn.BatchNorm1d(self.h_size),
-            nn.Linear(self.h_size, self.nb_values),
-            nn.Softmax(1)
+            nn.Conv1d(self.h_size, self.h_size, kernel_size=1, padding=0, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm1d(self.h_size),
+            nn.Conv1d(self.h_size, self.nb_values, kernel_size=1, padding=0, bias=False),
+            ## nn.Sigmoid() <= NOPE, because we use the (more stable) BCE with logits loss
         )
 
     def forward(self, x):
         with torch.no_grad():
             emb = self.backbone(x, repr_layers=[self.backbone_last_layer])["representations"][self.backbone_last_layer]
-        out_flatten = self.layers(emb)
-        # out = out_flatten.view(x.shape[0], -1, self.nb_values)
-        return out_flatten
+        # emb_no_padding = emb[x != 1, :]
+        # flat_emb = emb_no_padding.reshape(-1, self.input_size)
+        emb = emb.swapaxes(1, 2)
+        out = self.layers(emb)
+        return out
 
-    def save_linear_layer(self, path, str_bonus=""):
-        model_path = os.path.join(path, "model__"+str_bonus+".py")
+    def save_linear_layer(self, path, model_name=""):
+        model_path = os.path.join(path, model_name + ".pt")
         torch.save(self.layers.state_dict(), model_path)
-        print("model SAVED at:", model_path)
+        print("\tSAVED at:", model_path)
 
-    def load_linear_layer(self, path, str_bonus=""):
-        model_path = os.path.join(path, "model__"+str_bonus+".py")
-        self.layers.load_state_dict(torch.load(model_path, weights_only=True))
+    def load_linear_layer(self, path):
+        self.layers.load_state_dict(torch.load(path, weights_only=True))
         print("Linear layer loaded.")
 
 

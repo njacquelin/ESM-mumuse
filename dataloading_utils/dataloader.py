@@ -11,7 +11,7 @@ from time import time
 
 
 class Prot_Dataset(Dataset):
-    def __init__(self, alphabet,
+    def __init__(self, alphabet, threshold_index,
                  use_accessibility=False,
                  load_proxi_matrix=True,
                  path="./data/",
@@ -26,6 +26,7 @@ class Prot_Dataset(Dataset):
         self.path_out = path + path_out
         self.load_proxi_matrix = load_proxi_matrix
         self.use_accessibility = use_accessibility
+        self.threshold_index = threshold_index
         self.metadata = {}
         self.init_metadata()
         self.prot_list = list(self.metadata.keys())
@@ -109,14 +110,17 @@ class Prot_Dataset(Dataset):
         accesibility_values_str = getline(self.path_av, av_line)
         accesibility_values_str = list(accesibility_values_str.split(" ")[:-1])  # "-1" is "\n" at the end of the line
         accesibility_values_int = list(map(int, accesibility_values_str))
-        accesibility_values = torch.tensor(accesibility_values_int)
+        accesibility_values_int = [1. if val <= self.threshold_index else 0. for val in accesibility_values_int]
+        accesibility_values = torch.tensor(accesibility_values_int, dtype=torch.long)
         return accesibility_values
 
 
-def get_dataloader(batch_size, alphabet, use_accessibility, load_proxi_matrix, drop_last, num_workers=0, train_split=0.8):
+def get_dataloader(batch_size, alphabet, threshold_index,
+                   use_accessibility, load_proxi_matrix,
+                   drop_last, num_workers=0, train_split=0.8):
     collator = Collate(alphabet, use_accessibility=use_accessibility, load_proxi_matrix=load_proxi_matrix).collate_fn
 
-    full_dataset = Prot_Dataset(alphabet, use_accessibility=use_accessibility, load_proxi_matrix=load_proxi_matrix)
+    full_dataset = Prot_Dataset(alphabet, threshold_index, use_accessibility=use_accessibility, load_proxi_matrix=load_proxi_matrix)
     train_size = int(train_split * len(full_dataset))
     val_size = len(full_dataset) - train_size
 
